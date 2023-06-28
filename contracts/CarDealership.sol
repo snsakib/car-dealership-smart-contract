@@ -71,6 +71,75 @@ contract CarDealership is ERC721URIStorage {
             true
         );
 
-        emit CarListingSuccess(id, address(this), msg.sender, brand, price, mileage, true);
+        _transfer(msg.sender, address(this), id);
+
+        emit CarListingSuccess(
+            id,
+            address(this),
+            msg.sender,
+            brand,
+            price,
+            mileage,
+            true
+        );
+    }
+
+    function getAllCars() public view returns (Car[] memory) {
+        uint256 carCount = _carIds.current();
+        Car[] memory items = new Car[](carCount);
+        uint256 currentIndex = 0;
+
+        for (uint256 i = 0; i < carCount; i++) {
+            Car storage currentItem = _idToCar[i + 1];
+            items[currentIndex] = currentItem;
+            currentIndex += 1;
+        }
+
+        return items;
+    }
+
+    function getMyCars() public view returns (Car[] memory) {
+        uint256 totalCarCount = _carIds.current();
+        uint256 myCarCount = 0;
+        uint256 currentIndex = 0;
+
+        for (uint256 i = 0; i < totalCarCount; i++) {
+            if (
+                _idToCar[i + 1].contractAddress == msg.sender ||
+                _idToCar[i + 1].owner == msg.sender
+            ) {
+                myCarCount += 1;
+            }
+        }
+
+        Car[] memory items = new Car[](myCarCount);
+        for (uint256 i = 0; i < totalCarCount; i++) {
+            if (
+                _idToCar[i + 1].contractAddress == msg.sender ||
+                _idToCar[i + 1].owner == msg.sender
+            ) {
+              Car storage currentItem = _idToCar[i+1];
+              items[currentIndex] = currentItem;
+              currentIndex += 1;
+            }
+        }
+
+        return items;
+    }
+
+    function buyCar(uint256 id) public payable {
+      uint256 price = _idToCar[id].price;
+      address payable seller = _idToCar[id].owner;
+
+      require(msg.value == price, "Please submit the required price");
+
+      _idToCar[id].isListedForSale = true;
+      _idToCar[id].owner = payable(msg.sender);
+
+      _transfer(address(this), msg.sender, id);
+      approve(address(this), id);
+
+      (bool success, ) = payable(seller).call{value: msg.value}("");
+      require(success, "Transfer failed");
     }
 }
