@@ -118,9 +118,9 @@ contract CarDealership is ERC721URIStorage {
                 _idToCar[i + 1].contractAddress == msg.sender ||
                 _idToCar[i + 1].owner == msg.sender
             ) {
-              Car storage currentItem = _idToCar[i+1];
-              items[currentIndex] = currentItem;
-              currentIndex += 1;
+                Car storage currentItem = _idToCar[i + 1];
+                items[currentIndex] = currentItem;
+                currentIndex += 1;
             }
         }
 
@@ -128,18 +128,24 @@ contract CarDealership is ERC721URIStorage {
     }
 
     function buyCar(uint256 id) public payable {
-      uint256 price = _idToCar[id].price;
-      address payable seller = _idToCar[id].owner;
+        uint256 price = _idToCar[id].price;
+        address payable seller = _idToCar[id].owner;
 
-      require(msg.value == price, "Please submit the required price");
+        require(msg.value == price, "Please submit the required price");
 
-      _idToCar[id].isListedForSale = true;
-      _idToCar[id].owner = payable(msg.sender);
+        _idToCar[id].isListedForSale = true;
+        _idToCar[id].owner = payable(msg.sender);
 
-      _transfer(address(this), msg.sender, id);
-      approve(address(this), id);
+        _transfer(address(this), msg.sender, id);
+        approve(address(this), id);
 
-      (bool success, ) = payable(seller).call{value: msg.value}("");
-      require(success, "Transfer failed");
+        (bool success, ) = payable(seller).call{value: msg.value}("");
+        require(success, "Transfer failed");
+    }
+
+    function withdraw() internal {
+        require(msg.sender == contractOwner, "Only the owner can call this function");
+        (bool success, ) = payable(contractOwner).call{value: address(this).balance}("");
+        require(success, "Transfer failed");
     }
 }
